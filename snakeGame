@@ -1,0 +1,185 @@
+import pygame, random, sys, time 
+from pygame.locals import *
+
+pygame.init()
+
+# FPS decided by level of difficulty chosen 
+SCREEN_HEIGHT = 600
+SCREEN_WIDTH = 800
+
+fpsClock = pygame.time.Clock()  
+GRIDSIZE = 10 
+GRID_WIDTH = SCREEN_WIDTH / GRIDSIZE
+GRID_HEIGHT = SCREEN_HEIGHT / GRIDSIZE
+
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+GREEN = (0, 255, 0)
+LIGHTBLUE = (255,99,71)
+MEDIUMBLUE = (255,69,0)
+DARKBLUE = (255,0,0)
+
+EASYRECT = pygame.Rect(110, 390, 160, 50)
+MEDRECT = pygame.Rect(300, 390, 160, 50)
+DIFRECT = pygame.Rect(500, 390, 160, 50)
+
+font = pygame.font.Font(None, 33)
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), 0, 32) # displaysurf
+surface = pygame.Surface(screen.get_size())
+surface.fill((74, 74, 74))
+clock = pygame.time.Clock()
+
+UP    = (0, -1)
+DOWN  = (0, 1)
+LEFT  = (-1, 0)
+RIGHT = (1, 0)
+    
+screen.blit(surface, (0,0))
+
+def draw_box(surf, color, pos):
+    r = pygame.Rect((pos[0], pos[1]), (GRIDSIZE, GRIDSIZE))
+    pygame.draw.rect(surf, color, r)
+
+class Snake(object):
+    def __init__(self):
+        self.lose()
+        self.color = WHITE
+
+    def get_head_position(self):
+        return self.positions[0]
+
+    def lose(self):
+        self.length = 1
+        self.positions =  [((SCREEN_WIDTH / 2), (SCREEN_HEIGHT / 2))]
+        self.direction = random.choice([UP, DOWN, LEFT, RIGHT])
+
+    def point(self, pt):
+        if self.length > 1 and (pt[0] * -1, pt[1] * -1) == self.direction:
+            return
+        else:
+            self.direction = pt
+
+    def move(self):
+        cur = self.positions[0]
+        x, y = self.direction
+        new = (((cur[0]+(x*GRIDSIZE)) % SCREEN_WIDTH), (cur[1]+(y*GRIDSIZE)) % SCREEN_HEIGHT)
+        if len(self.positions) > 2 and new in self.positions[2:]:
+            self.lose()
+        else:
+            self.positions.insert(0, new)
+            if len(self.positions) > self.length:
+                self.positions.pop()
+    
+    def draw(self, surf):
+        for p in self.positions:
+            draw_box(surf, self.color, p)
+
+class Apple(object):
+    def __init__(self):
+        self.position = (0,0)
+        self.color = (255,0,0)
+        self.randomize()
+
+    def randomize(self):
+        self.position = (random.randint(0, GRID_WIDTH-1) * GRIDSIZE, random.randint(0, GRID_HEIGHT-1) * GRIDSIZE)
+
+    def draw(self, surf):
+        draw_box(surf, self.color, self.position)
+
+def check_eat(snake, apple):
+    if snake.get_head_position() == apple.position:
+        snake.length += 1
+        apple.randomize()
+
+def main():
+    snake = Snake()
+    apple = Apple()
+    while True:
+
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                pygame.quit()
+                sys.exit()
+
+            elif event.type == KEYDOWN:
+                if event.key == K_UP:
+                    snake.point(UP)
+                elif event.key == K_DOWN:
+                    snake.point(DOWN)
+                elif event.key == K_LEFT:
+                    snake.point(LEFT)
+                elif event.key == K_RIGHT:
+                    snake.point(RIGHT)
+
+
+        surface.fill((74, 74, 74))
+        snake.move()
+        check_eat(snake, apple)
+        snake.draw(surface)
+        apple.draw(surface)
+
+        text = font.render("Score:  " + str(snake.length), 1, (10, 10, 10))
+        textpos = text.get_rect()
+        textpos.topleft = (35, 25)
+        surface.blit(text, textpos)
+        screen.blit(surface, (0,0))
+
+        pygame.display.flip()
+        pygame.display.update()
+        fpsClock.tick(FPS + snake.length/3)
+
+
+# WORKING ON THIS RN: 
+
+def drawButtons(easyButton, mediumButton, difficultButton):
+
+    easyText = font.render("Easy", 1, WHITE) 
+    screen.blit(easyText, easyButton)
+
+    mediumText = font.render("Intermediate", 1, WHITE)
+    screen.blit(mediumText, mediumButton)
+
+    difficultText = font.render("Difficult", 1, WHITE)
+    screen.blit(difficultText, difficultButton)
+
+def getButtonClicked(x, y, easyButton, mediumButton, difficultButton):
+
+    if easyButton.collidepoint((x, y)):
+        return easyButton
+    elif mediumButton.collidepoint((x, y)):
+        return mediumButton
+    else:
+        return difficultButton
+
+runWelcomeScreen = True 
+
+while runWelcomeScreen:
+
+    screen.fill(WHITE)
+    introFont = font.render("Welcome. Please select one of the following levels of difficulty: ", 1, BLACK)
+    introRect = introFont.get_rect() # get rectangular area of surface 
+    introRect.topleft = (70, 100)
+    screen.blit(introFont, introRect)
+
+    easyButton = pygame.draw.rect(screen, LIGHTBLUE, EASYRECT) # can make them dark gray later 
+    mediumButton = pygame.draw.rect(screen, MEDIUMBLUE, MEDRECT)
+    difficultButton = pygame.draw.rect(screen, DARKBLUE, DIFRECT)
+
+    drawButtons(easyButton, mediumButton, difficultButton)
+    clickedButton = None # button that was most recently clicked 
+
+    for event in pygame.event.get(): # this is a loop that constantly checks for game events 
+
+        if event.type == MOUSEBUTTONDOWN: 
+            mousex, mousey = event.pos 
+            clickedButton = getButtonClicked(mousex, mousey, easyButton, mediumButton, difficultButton) # gets mouse position to decide which button was clicked
+
+            if clickedButton == easyButton:
+                FPS = 20 # frames per second 
+            elif clickedButton == mediumButton:
+                FPS = 32
+            else: 
+                FPS = 42
+
+            runWelcomeScreen = False 
+            main()
