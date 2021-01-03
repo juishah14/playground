@@ -128,9 +128,6 @@ def main():
         pygame.display.update()
         fpsClock.tick(FPS + snake.length/3)
 
-
-# WORKING ON THIS RN: 
-
 def drawButtons(easyButton, mediumButton, difficultButton):
 
     easyText = font.render("Easy", 1, WHITE) 
